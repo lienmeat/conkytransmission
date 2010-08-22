@@ -1,0 +1,3 @@
+${voffset 10}${font Sans:style=Bold:size=8}TORRENTS $stippled_hr${font}
+[:TORRENTS:]
+[:GLOBALS:]
