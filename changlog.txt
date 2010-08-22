@@ -1,0 +1,5 @@
+v0.5 - Aug 21 2010:
+* Has an installation script now!
+* Added template engine
+* Added command line arguments (run "~/.conkytransmission/conkytransmission.py -h" for details)
+* Uses lua_bar instead of execbar by default so that the progress bar can be varied in size easily, instead of having to rely on your default_bar_size param
