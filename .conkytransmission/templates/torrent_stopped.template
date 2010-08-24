@@ -1,3 +1,3 @@
-${color0}[:NAME:]${color}${alignr}${color1}[:PERCENT:]%${color}
+${voffset 3}${color0}[:NAME:]${color}${alignr}${color1}[:PERCENT:]%${color}
 Status: ${color0}[:STATUS:]${color} R: ${color0}[:RATIO:]${color}
-${lua_bar 3,0 conkytransmission [:PERCENT:]}
+${voffset -2}${lua_bar 3,0 conkytransmission [:PERCENT:]}
