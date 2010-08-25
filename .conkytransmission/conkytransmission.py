@@ -35,6 +35,8 @@ class CommandLineParser:
     def __init__(self):
         self.parser = OptionParser()
         self.parser.add_option("-a","--showactive", dest="show_active", default=False, action="store_true", help=u"Show only active torrents")
+        self.parser.add_option("--case_sensitive", dest="case_sensitive_filter", default=False, action="store_true", help=u"Make the keyword filter case sensitive")
+        self.parser.add_option("-f","--filterlist", dest="filter_file", default=False, metavar="FILE", help=u"File containing keywords to filter out torrents with. If the keyword is found in a torrent name, that torrent will not be shown.")
         self.parser.add_option("-k","--kbps",dest="k_unit", default="K", type="string", metavar="STRING", help=u"How you would like KiB/s to be shown [default: %default]")
         self.parser.add_option("-l","--namelength",dest="name_length", type="int", default=35, metavar="NUMBER", help=u"[default: %default] Length of torrent name in characters")
         self.parser.add_option("-n","--number",dest="number", default=99, type="int", metavar="NUMBER", help=u"How many torrents will be shown [default: %default]")
@@ -42,7 +44,7 @@ class CommandLineParser:
         self.parser.add_option("-r","--reverse", dest="reverse_sort", default=False, action="store_true", help=u"Sort in reverse order")
         self.parser.add_option("-s","--sortby", dest="sort_by", default="progress", type="string", metavar="option", help=u"How torrents are sorted. [default: %default] options=(percent,eta,down,up,ratio,status,progress,name)")
         self.parser.add_option("-t","--templatespath", dest="template_folder", default=False, metavar="PATH", help=u"Folder where your custom templates are")
-        self.parser.add_option("-v", "-V", "--version", dest="version", default=False, action="store_true", help=u"Displays the version of the script.")        
+        self.parser.add_option("-v", "-V", "--version", dest="version", default=False, action="store_true", help=u"Displays the version of the script.")  
         
     def parse_args(self):
         (options, args) = self.parser.parse_args()
@@ -62,16 +64,40 @@ class ConkyTransmission:
     """Gets transmission information and forms conky scripts from it"""
     config = None
     torrent_list = list()
+    filter_list = list()
     templater = None
     
     def __init__(self, config):
         self.config = config
+        self.getFilterList()                  
         try:
             self.templater = TemplateWriter(config)
         except Exception:
             print "Could not find templates! Quitting!"
         else:
             self.run()
+    
+    #parses filter_file for keywords, putting them in a list
+    def getFilterList(self):
+        if self.config.filter_file:            
+            filtertext = getFile(self.config.filter_file)
+            if filtertext and len(filtertext) > 0:
+                filtertext = filtertext.replace(' ','').replace('\n','')
+                if not self.config.case_sensitive_filter:
+                    filtertext = filtertext.lower()
+                self.filter_list = str(filtertext).split(",")
+    
+    #checks for filter words in torrent name
+    def hasFilterWord(self, torrent):
+        if self.config.case_sensitive_filter:
+            name = torrent.file                    
+        else:
+            name = torrent.file.lower()
+
+        for w in self.filter_list:
+            if name.find(w) >= 0:
+                return True
+        return False
     
     # scrape data from transmission-remote, separating lines
     # returns list of lines of transmission-remote -l
@@ -91,10 +117,10 @@ class ConkyTransmission:
             if count > 1 and count < length:
                 t = Torrent(t, self.config)
                 if self.config.show_active:
-                    if(t.status == "Seeding" or t.status == "Downloading" or t.status == "Up & Down"):
+                    if(t.status == "Seeding" or t.status == "Downloading" or t.status == "Up & Down" and not self.hasFilterWord(t)):
                         self.torrent_list.append(t)
                         havetorrents = True
-                else:
+                elif(not self.hasFilterWord(t)):
                     havetorrents = True
                     self.torrent_list.append(t)
             #last line has relevent global stats
